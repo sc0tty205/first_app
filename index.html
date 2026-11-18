@@ -1,0 +1,1112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Beam Designer</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #647083;
+      --line: #dce3ec;
+      --surface: #ffffff;
+      --canvas: #f3f6fa;
+      --accent: #2867c7;
+      --accent-soft: #eaf2ff;
+      --green: #23845b;
+      --green-soft: #e4f5ed;
+      --amber: #ad7413;
+      --amber-soft: #fff3d8;
+      --red: #bd3f4b;
+      --red-soft: #fde9ec;
+      --shadow: 0 12px 30px rgba(27, 47, 78, .08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font: 15px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .app-shell {
+      width: min(1440px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 28px 0 44px;
+    }
+
+    .app-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      margin: 0 0 5px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 7px; font-size: clamp(28px, 4vw, 40px); letter-spacing: -.04em; }
+    h2 { margin-bottom: 3px; font-size: 18px; letter-spacing: -.015em; }
+    h3 { margin-bottom: 14px; font-size: 15px; }
+    .subtitle { max-width: 700px; margin-bottom: 0; color: var(--muted); }
+
+    .example-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 13px;
+      border: 1px solid #cfe0fb;
+      border-radius: 999px;
+      color: #24589e;
+      background: var(--accent-soft);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .example-badge::before {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4c9cf5;
+      content: "";
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(290px, 350px) minmax(0, 1fr);
+      align-items: start;
+      gap: 22px;
+    }
+
+    .panel, .card {
+      border: 1px solid rgba(206, 217, 231, .85);
+      border-radius: 18px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .input-panel {
+      position: sticky;
+      top: 18px;
+      padding: 22px;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .section-heading p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .field { margin-bottom: 17px; }
+    .field:last-child { margin-bottom: 0; }
+    label, .field-label {
+      display: block;
+      margin-bottom: 6px;
+      color: #334157;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .02em;
+    }
+
+    .unit {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    input[type="number"], select {
+      width: 100%;
+      min-height: 40px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: var(--ink);
+      background: #fbfcfe;
+      outline: none;
+    }
+    input[type="number"]:focus, select:focus, input[type="range"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(40, 103, 199, .13);
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f6f8fb;
+    }
+    .segmented label { margin: 0; }
+    .segmented input { position: absolute; opacity: 0; pointer-events: none; }
+    .segmented span {
+      display: block;
+      padding: 8px 6px;
+      border-radius: 7px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .segmented input:checked + span {
+      color: var(--accent);
+      background: var(--surface);
+      box-shadow: 0 2px 6px rgba(29, 48, 77, .09);
+    }
+
+    .range-row, .inline-fields {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 88px;
+      align-items: center;
+      gap: 12px;
+    }
+    .range-value {
+      display: block;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: var(--ink);
+      background: #fbfcfe;
+      font-weight: 800;
+      text-align: center;
+    }
+    .inline-fields { grid-template-columns: 1fr 1fr; gap: 10px; }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+    .range-hint, .helper {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .divider { height: 1px; margin: 22px 0; background: var(--line); }
+
+    .load-card {
+      margin-bottom: 12px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fbfcfe;
+    }
+    .load-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 11px;
+    }
+    .load-card-header strong { font-size: 13px; }
+    .remove-button {
+      border: 0;
+      color: var(--muted);
+      background: transparent;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .remove-button:hover { color: var(--red); }
+    .load-card .field { margin-bottom: 10px; }
+    .load-card .field:last-child { margin-bottom: 0; }
+    .load-card.invalid { border-color: #e6a1aa; background: #fff8f9; }
+    .field.invalid input, .field.invalid select {
+      border-color: #d96876;
+      box-shadow: 0 0 0 3px rgba(189, 63, 75, .1);
+    }
+    .error-message {
+      margin: 5px 0 0;
+      color: var(--red);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .button-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .button {
+      min-height: 38px;
+      padding: 8px 12px;
+      border: 1px solid #c8d8ee;
+      border-radius: 9px;
+      color: var(--accent);
+      background: var(--accent-soft);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .button:hover { background: #dceaff; }
+    .button.secondary { color: #45536a; border-color: var(--line); background: #f8fafc; }
+    .button.primary { border-color: var(--accent); color: #fff; background: var(--accent); }
+
+    .content { display: grid; gap: 18px; min-width: 0; }
+    .card { padding: 20px; }
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .card-header p { margin-bottom: 0; color: var(--muted); font-size: 13px; }
+    .legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; color: var(--muted); font-size: 12px; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend i { width: 10px; height: 10px; display: inline-block; border-radius: 50%; }
+    .legend .load-dot { background: var(--red); }
+    .legend .reaction-dot { background: var(--green); }
+
+    .beam-wrap { overflow-x: auto; padding: 2px 0 0; }
+    .beam-svg { display: block; width: 100%; min-width: 640px; height: 210px; }
+    .beam-line { stroke: #34445c; stroke-width: 5; stroke-linecap: round; }
+    .support { fill: #d8e1ec; stroke: #66778e; stroke-width: 2; }
+    .support-base { stroke: #66778e; stroke-width: 2; }
+    .load-arrow { stroke: var(--red); stroke-width: 2.5; }
+    .load-head { fill: var(--red); }
+    .draggable-load { cursor: grab; }
+    .draggable-load:active { cursor: grabbing; }
+    .reaction-arrow { stroke: var(--green); stroke-width: 2.5; }
+    .reaction-head { fill: var(--green); }
+    .dimension { stroke: #98a7bb; stroke-width: 1.4; }
+    .beam-svg text { fill: #56657a; font-size: 12px; font-weight: 700; }
+    .beam-svg .load-label { fill: var(--red); }
+    .beam-svg .reaction-label { fill: var(--green); }
+
+    .plots { display: grid; gap: 14px; }
+    .plot {
+      position: relative;
+      min-height: 148px;
+      padding: 10px 12px 6px;
+      border: 1px solid #e4e9f0;
+      border-radius: 12px;
+      background: #fcfdff;
+    }
+    .plot-title {
+      position: absolute;
+      top: 11px;
+      left: 13px;
+      z-index: 1;
+      color: #42526a;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .plot-title span { color: var(--muted); font-weight: 600; }
+    .plot svg { display: block; width: 100%; height: 126px; }
+    .plot .axis { stroke: #bcc7d6; stroke-width: 1; }
+    .plot .grid { stroke: #e8edf3; stroke-width: 1; stroke-dasharray: 4 5; }
+    .plot .area-shear { fill: #dbeaff; }
+    .plot .line-shear { fill: none; stroke: #347cd9; stroke-width: 2.5; }
+    .plot .area-moment { fill: #e8e2ff; }
+    .plot .line-moment { fill: none; stroke: #7657c9; stroke-width: 2.5; }
+    .plot .area-deflection { fill: #dff3ea; }
+    .plot .line-deflection { fill: none; stroke: #23845b; stroke-width: 2.5; }
+    .plot text { fill: #66768b; font-size: 10px; }
+    .plot .value-label { fill: #263b5b; font-size: 11px; font-weight: 800; }
+    .crosshair {
+      stroke: #e29b35;
+      stroke-width: 1.5;
+      stroke-dasharray: 4 4;
+    }
+    .hover-note {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      padding: 5px 8px;
+      border: 1px solid #f1d7a2;
+      border-radius: 7px;
+      color: #8a601d;
+      background: #fff8e9;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .checks {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .check-card {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: #fcfdff;
+    }
+    .check-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .check-top strong { font-size: 14px; }
+    .status {
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .04em;
+    }
+    .status.pass { color: var(--green); background: var(--green-soft); }
+    .status.fail { color: var(--red); background: var(--red-soft); }
+    .check-values { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
+    .check-values span { color: var(--muted); font-size: 12px; }
+    .check-values strong { display: block; margin-top: 2px; color: var(--ink); font-size: 17px; }
+    .meter { height: 9px; overflow: hidden; border-radius: 99px; background: #edf0f4; }
+    .meter-fill { height: 100%; border-radius: inherit; background: var(--green); }
+    .meter-fill.amber { background: #d39a34; }
+    .meter-fill.red { background: var(--red); }
+    .check-help { margin: 10px 0 0; color: var(--muted); font-size: 11px; }
+
+    .recommendation {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 16px 18px;
+      border: 1px solid #cfe0fb;
+      border-radius: 13px;
+      background: var(--accent-soft);
+    }
+    .recommendation p { margin: 3px 0 0; color: #52647e; font-size: 13px; }
+    .recommendation strong { color: #1d4f96; font-size: 17px; }
+    .secondary-results {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 14px;
+    }
+    .quantity-card, .reinforcement-warning {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: #fcfdff;
+    }
+    .quantity-card h3, .reinforcement-warning h3 { margin-bottom: 12px; }
+    .quantity-values {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .quantity-value {
+      padding: 10px;
+      border-radius: 9px;
+      background: #f3f6fa;
+    }
+    .quantity-value span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .quantity-value strong {
+      display: block;
+      margin-top: 2px;
+      font-size: 16px;
+    }
+    .reinforcement-warning {
+      border-color: #b9dfcc;
+      background: var(--green-soft);
+    }
+    .reinforcement-warning.required {
+      border-color: #e6a1aa;
+      background: var(--red-soft);
+    }
+    .reinforcement-warning h3 { color: var(--green); }
+    .reinforcement-warning.required h3 { color: var(--red); }
+    .reinforcement-warning p { margin: 0; color: #52647e; font-size: 12px; }
+
+    .small-note { margin: 0; color: var(--muted); font-size: 12px; }
+    .footer-note { padding: 0 4px; color: var(--muted); font-size: 12px; text-align: center; }
+
+    @media (max-width: 1000px) {
+      .workspace { grid-template-columns: 1fr; }
+      .input-panel { position: static; }
+      .input-panel .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+    }
+    @media (max-width: 650px) {
+      .app-shell { width: min(100% - 24px, 560px); padding-top: 18px; }
+      .app-header, .card-header, .recommendation { align-items: stretch; flex-direction: column; }
+      .example-badge { align-self: flex-start; }
+      .input-panel, .card { padding: 16px; }
+      .input-panel .controls-grid { display: block; }
+      .checks { grid-template-columns: 1fr; }
+      .secondary-results { grid-template-columns: 1fr; }
+      .quantity-values { grid-template-columns: 1fr 1fr 1fr; }
+      .legend { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Beam Designer</p>
+        <h1>Check a beam in seconds.</h1>
+        <p class="subtitle">Set up the beam, place loads, and review shear, moment, deflection, and section checks in one view.</p>
+      </div>
+      <div class="example-badge">Example loaded</div>
+    </header>
+
+    <div class="workspace">
+      <aside class="panel input-panel" aria-labelledby="inputs-heading">
+        <div class="section-heading">
+          <div>
+            <h2 id="inputs-heading">Beam inputs</h2>
+            <p>Update the setup on the left.</p>
+          </div>
+        </div>
+
+        <div class="controls-grid">
+          <div class="field">
+            <span class="field-label">Support type</span>
+            <div class="segmented" role="group" aria-label="Support type">
+              <label>
+                <input type="radio" name="support" value="simply-supported" checked>
+                <span>Simply supported</span>
+              </label>
+              <label>
+                <input type="radio" name="support" value="cantilever">
+                <span>Cantilever</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="span">Span <span class="unit">(ft)</span></label>
+            <div class="range-row">
+              <input id="span" type="range" min="4" max="40" value="20">
+              <input id="span-number" aria-label="Span in feet" type="number" min="4" max="40" value="20">
+            </div>
+            <div class="range-hint"><span>4 ft</span><span>40 ft</span></div>
+          </div>
+
+          <div class="field">
+            <label for="material">Material</label>
+            <select id="material">
+              <option selected>Steel</option>
+              <option>Douglas Fir-Larch No. 2</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="section">Section</label>
+            <select id="section">
+              <option>W8x10</option>
+              <option>W10x12</option>
+              <option selected>W12x26</option>
+              <option>W14x22</option>
+              <option>W16x26</option>
+              <option>W18x35</option>
+              <option>W21x44</option>
+              <option>W24x55</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="limit">Deflection limit</label>
+            <select id="limit">
+              <option>L/240</option>
+              <option selected>L/360</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="waste-factor">Waste factor <span class="unit">(%)</span></label>
+            <div class="range-row">
+              <input id="waste-factor" type="range" min="0" max="15" step="1" value="0">
+              <output id="waste-factor-value" class="range-value" for="waste-factor">0%</output>
+            </div>
+            <div class="range-hint"><span>0%</span><span>15%</span></div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="section-heading">
+          <div>
+            <h2>Loads</h2>
+            <p>Downward loads are positive.</p>
+          </div>
+        </div>
+
+        <div id="load-list" aria-live="polite"></div>
+
+        <div class="button-row">
+          <button id="add-point-load" class="button" type="button">+ Add point load</button>
+          <button id="add-uniform-load" class="button" type="button">+ Add uniform load</button>
+        </div>
+      </aside>
+
+      <section class="content" aria-label="Beam results">
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <h2>Beam overview</h2>
+              <p id="beam-summary">Loads and reactions shown on a 20 ft beam.</p>
+            </div>
+            <div class="legend" aria-label="Diagram legend">
+              <span><i class="load-dot"></i> Applied load</span>
+              <span><i class="reaction-dot"></i> Reaction</span>
+            </div>
+          </div>
+          <div class="beam-wrap">
+            <svg id="beam-svg" class="beam-svg" viewBox="0 0 900 210" role="img" aria-label="Simply supported beam with applied loads">
+              <defs>
+                <marker id="arrow-red" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                  <path class="load-head" d="M0,0 L8,4 L0,8 Z"></path>
+                </marker>
+                <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                  <path class="reaction-head" d="M0,0 L8,4 L0,8 Z"></path>
+                </marker>
+              </defs>
+              <line class="beam-line" x1="120" y1="105" x2="780" y2="105"></line>
+              <path class="support" d="M120 110 L97 148 L143 148 Z"></path>
+              <line class="support-base" x1="88" y1="153" x2="152" y2="153"></line>
+              <path class="support" d="M780 110 L757 148 L803 148 Z"></path>
+              <line class="support-base" x1="748" y1="153" x2="812" y2="153"></line>
+              <g id="uniform-load-arrows" class="load-arrow" marker-end="url(#arrow-red)"></g>
+              <text id="uniform-load-label" class="load-label" x="450" y="23" text-anchor="middle"></text>
+              <g id="point-load-markers"></g>
+              <g class="reaction-arrow" marker-end="url(#arrow-green)">
+                <line x1="120" y1="190" x2="120" y2="158"></line>
+                <line x1="780" y1="190" x2="780" y2="158"></line>
+              </g>
+              <text class="reaction-label" x="120" y="205" text-anchor="middle">R₁ = 10.0 k</text>
+              <text class="reaction-label" x="780" y="205" text-anchor="middle">R₂ = 10.0 k</text>
+              <line class="dimension" x1="120" y1="169" x2="780" y2="169"></line>
+              <line class="dimension" x1="120" y1="164" x2="120" y2="174"></line>
+              <line class="dimension" x1="780" y1="164" x2="780" y2="174"></line>
+              <text id="beam-span-label" x="450" y="165" text-anchor="middle">20.00 ft</text>
+            </svg>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <h2>Diagrams</h2>
+              <p>Hover over a diagram to inspect all three values at one location.</p>
+            </div>
+            <div class="hover-note">x = 10.0 ft · V = 0.0 k · M = 50.0 kip-ft · y = 0.609 in</div>
+          </div>
+          <div class="plots">
+            <div class="plot">
+              <div class="plot-title">Shear <span>(kips)</span></div>
+              <svg viewBox="0 0 900 126" role="img" aria-label="Placeholder shear force diagram">
+                <line class="grid" x1="40" y1="36" x2="860" y2="36"></line>
+                <line class="axis" x1="40" y1="82" x2="860" y2="82"></line>
+                <path class="area-shear" d="M40 82 L40 35 L450 82 L860 82 L860 82 Z"></path>
+                <path class="line-shear" d="M40 35 L450 82 L860 82"></path>
+                <line class="crosshair" x1="450" y1="20" x2="450" y2="103"></line>
+                <text x="28" y="39">+10</text><text x="30" y="86">0</text><text x="832" y="119">20 ft</text>
+                <text class="value-label" x="450" y="29" text-anchor="middle">max +10.0 k</text>
+              </svg>
+            </div>
+            <div class="plot">
+              <div class="plot-title">Moment <span>(kip-ft)</span></div>
+              <svg viewBox="0 0 900 126" role="img" aria-label="Placeholder bending moment diagram">
+                <line class="grid" x1="40" y1="30" x2="860" y2="30"></line>
+                <line class="axis" x1="40" y1="98" x2="860" y2="98"></line>
+                <path class="area-moment" d="M40 98 L40 98 Q245 64 450 28 Q655 64 860 98 Z"></path>
+                <path class="line-moment" d="M40 98 Q245 64 450 28 Q655 64 860 98"></path>
+                <line class="crosshair" x1="450" y1="20" x2="450" y2="108"></line>
+                <text x="23" y="34">+50</text><text x="30" y="102">0</text><text x="832" y="119">20 ft</text>
+                <text class="value-label" x="450" y="21" text-anchor="middle">max +50.0 kip-ft @ 10.0 ft</text>
+              </svg>
+            </div>
+            <div class="plot">
+              <div class="plot-title">Deflected shape <span>(in)</span></div>
+              <svg viewBox="0 0 900 126" role="img" aria-label="Placeholder deflected shape diagram">
+                <line class="grid" x1="40" y1="31" x2="860" y2="31"></line>
+                <line class="axis" x1="40" y1="45" x2="860" y2="45"></line>
+                <path class="area-deflection" d="M40 45 Q245 52 450 95 Q655 52 860 45 L860 45 L40 45 Z"></path>
+                <path class="line-deflection" d="M40 45 Q245 52 450 95 Q655 52 860 45"></path>
+                <line class="crosshair" x1="450" y1="20" x2="450" y2="108"></line>
+                <text x="20" y="35">0</text><text x="15" y="100">-0.61</text><text x="832" y="119">20 ft</text>
+                <text class="value-label" x="450" y="115" text-anchor="middle">max 0.609 in @ 10.0 ft</text>
+              </svg>
+            </div>
+          </div>
+        </section>
+
+        <section class="checks" aria-label="Design checks">
+          <article class="check-card">
+            <div class="check-top">
+              <strong>Bending check</strong>
+              <span id="bending-status" class="status pass">PASS</span>
+            </div>
+            <div class="check-values">
+              <span>Actual<strong>17.96 ksi</strong></span>
+              <span>Allowable<strong>30.00 ksi</strong></span>
+            </div>
+            <div class="meter" aria-label="Bending ratio 59.9 percent">
+              <div class="meter-fill" style="width: 59.9%"></div>
+            </div>
+            <p class="check-help">fb = |Mmax| × 12 / Sx</p>
+          </article>
+          <article class="check-card">
+            <div class="check-top">
+              <strong>Deflection check</strong>
+              <span id="deflection-status" class="status pass">PASS</span>
+            </div>
+            <div class="check-values">
+              <span>Actual<strong>0.609 in</strong></span>
+              <span>Allowable<strong>0.667 in</strong></span>
+            </div>
+            <div class="meter" aria-label="Deflection ratio 91.3 percent">
+              <div class="meter-fill amber" style="width: 91.3%"></div>
+            </div>
+            <p class="check-help">|ymax| ≤ L/360</p>
+          </article>
+        </section>
+
+        <section class="secondary-results">
+          <article class="quantity-card" aria-labelledby="quantity-heading">
+            <h3 id="quantity-heading">Material quantity</h3>
+            <div class="quantity-values">
+              <div class="quantity-value">
+                <span>Base length</span>
+                <strong id="base-quantity">20.00 ft</strong>
+              </div>
+              <div class="quantity-value">
+                <span>Waste factor</span>
+                <strong id="quantity-waste">0%</strong>
+              </div>
+              <div class="quantity-value">
+                <span>Required length</span>
+                <strong id="adjusted-quantity">20.00 ft</strong>
+              </div>
+            </div>
+          </article>
+          <aside id="reinforcement-warning" class="reinforcement-warning" role="status" aria-live="polite">
+            <h3 id="reinforcement-heading">No reinforcement indicated</h3>
+            <p id="reinforcement-message">The current bending and deflection checks pass. Waste affects material quantity only.</p>
+          </aside>
+        </section>
+
+        <section class="recommendation">
+          <div>
+            <strong>Lightest passing section: W12x26</strong>
+            <p>Steel · 26 lb/ft · passes bending and deflection checks.</p>
+          </div>
+          <button class="button primary" type="button">Use this section</button>
+        </section>
+        <p class="footer-note">Prototype stage: values and diagrams are illustrative placeholders.</p>
+      </section>
+    </div>
+  </main>
+  <script>
+    const SECTION_OPTIONS = {
+      Steel: ["W8x10", "W10x12", "W12x26", "W14x22", "W16x26", "W18x35", "W21x44", "W24x55"],
+      "Douglas Fir-Larch No. 2": ["2x8", "2x10", "2x12"]
+    };
+
+    const state = {
+      supportType: "simply-supported",
+      span: 20,
+      material: "Steel",
+      section: "W12x26",
+      deflectionLimit: "L/360",
+      wasteFactor: 0,
+      pointLoads: [],
+      uniformLoads: [
+        { id: "uniform-1", magnitude: 1, start: 0, end: 20 }
+      ]
+    };
+
+    let nextLoadNumber = 2;
+    let draggedPointLoadId = null;
+
+    function createLoadId(type) {
+      return `${type}-${nextLoadNumber++}`;
+    }
+
+    function getNumberValue(value) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
+    }
+
+    function clamp(value, minimum, maximum) {
+      return Math.min(Math.max(value, minimum), maximum);
+    }
+
+    function snapToQuarter(value) {
+      return Math.round(value * 4) / 4;
+    }
+
+    function calculateAdjustedMaterialQuantity(span, wasteFactor) {
+      if (!Number.isFinite(span) || !Number.isFinite(wasteFactor)) {
+        return { baseQuantity: null, adjustedQuantity: null };
+      }
+      const baseQuantity = span;
+      const adjustedQuantity = baseQuantity * (1 + wasteFactor / 100);
+      return { baseQuantity, adjustedQuantity };
+    }
+
+    function updateMaterialQuantity() {
+      const quantity = calculateAdjustedMaterialQuantity(state.span, state.wasteFactor);
+      document.querySelector("#base-quantity").textContent = quantity.baseQuantity === null
+        ? "—"
+        : `${quantity.baseQuantity.toFixed(2)} ft`;
+      document.querySelector("#quantity-waste").textContent = `${state.wasteFactor}%`;
+      document.querySelector("#adjusted-quantity").textContent = quantity.adjustedQuantity === null
+        ? "—"
+        : `${quantity.adjustedQuantity.toFixed(2)} ft`;
+    }
+
+    function updateReinforcementWarning() {
+      const bendingStatus = document.querySelector("#bending-status").textContent.trim().toUpperCase();
+      const deflectionStatus = document.querySelector("#deflection-status").textContent.trim().toUpperCase();
+      const reinforcementWarning = document.querySelector("#reinforcement-warning");
+      const heading = document.querySelector("#reinforcement-heading");
+      const message = document.querySelector("#reinforcement-message");
+      const reinforcementRequired = bendingStatus !== "PASS" || deflectionStatus !== "PASS";
+
+      reinforcementWarning.classList.toggle("required", reinforcementRequired);
+      heading.textContent = reinforcementRequired
+        ? "Reinforcement required"
+        : "No reinforcement indicated";
+      message.textContent = reinforcementRequired
+        ? "At least one implemented design check fails. Review the selected section or provide reinforcement."
+        : "The current bending and deflection checks pass. Waste affects material quantity only.";
+    }
+
+    function getLoadById(type, id) {
+      const loads = type === "point" ? state.pointLoads : state.uniformLoads;
+      return loads.find((load) => load.id === id);
+    }
+
+    function renderLoadEditors() {
+      const loadList = document.querySelector("#load-list");
+      loadList.innerHTML = "";
+
+      state.pointLoads.forEach((load, index) => {
+        const card = document.createElement("article");
+        card.className = "load-card";
+        card.dataset.type = "point";
+        card.dataset.id = load.id;
+        card.innerHTML = `
+          <div class="load-card-header">
+            <strong>Point load ${index + 1}</strong>
+            <button class="remove-button" type="button" data-action="remove-load">Remove</button>
+          </div>
+          <div class="inline-fields">
+            <div class="field" data-field="magnitude">
+              <label>Load value <span class="unit">(kips)</span></label>
+              <input data-field="magnitude" type="number" value="${load.magnitude}" step=".01">
+            </div>
+            <div class="field" data-field="position">
+              <label>Position <span class="unit">(ft)</span></label>
+              <input data-field="position" type="number" value="${load.position}" min="0" max="${state.span}" step=".25">
+            </div>
+          </div>
+          <p class="error-message" data-error-message hidden></p>
+        `;
+        loadList.appendChild(card);
+      });
+
+      state.uniformLoads.forEach((load, index) => {
+        const card = document.createElement("article");
+        card.className = "load-card";
+        card.dataset.type = "uniform";
+        card.dataset.id = load.id;
+        card.innerHTML = `
+          <div class="load-card-header">
+            <strong>Uniform load ${index + 1}</strong>
+            <button class="remove-button" type="button" data-action="remove-load">Remove</button>
+          </div>
+          <div class="field" data-field="magnitude">
+            <label>Magnitude <span class="unit">(kips/ft)</span></label>
+            <input data-field="magnitude" type="number" value="${load.magnitude}" min="0" step=".01">
+          </div>
+          <div class="inline-fields">
+            <div class="field" data-field="start">
+              <label>Start <span class="unit">(ft)</span></label>
+              <input data-field="start" type="number" value="${load.start}" min="0" max="${state.span}" step=".25">
+            </div>
+            <div class="field" data-field="end">
+              <label>End <span class="unit">(ft)</span></label>
+              <input data-field="end" type="number" value="${load.end}" min="0" max="${state.span}" step=".25">
+            </div>
+          </div>
+          <p class="error-message" data-error-message hidden></p>
+        `;
+        loadList.appendChild(card);
+      });
+
+      validateInputs();
+    }
+
+    function renderSectionOptions() {
+      const sectionSelect = document.querySelector("#section");
+      const sections = SECTION_OPTIONS[state.material];
+      const selectedSection = sections.includes(state.section) ? state.section : sections[Math.min(2, sections.length - 1)];
+      state.section = selectedSection;
+      sectionSelect.innerHTML = sections.map((section) => (
+        `<option${section === selectedSection ? " selected" : ""}>${section}</option>`
+      )).join("");
+    }
+
+    function setErrorMessage(element, message) {
+      const messageElement = element.querySelector("[data-error-message]");
+      if (!messageElement) return;
+      messageElement.textContent = message;
+      messageElement.hidden = !message;
+      element.classList.toggle("invalid", Boolean(message));
+    }
+
+    function validateInputs() {
+      const spanField = document.querySelector("#span").closest(".field");
+      let spanMessage = "";
+      if (state.span === null || state.span < 4 || state.span > 40) {
+        spanMessage = "Enter a span from 4 to 40 ft.";
+      }
+
+      let spanError = document.querySelector("#span-error");
+      if (!spanError) {
+        spanError = document.createElement("p");
+        spanError.id = "span-error";
+        spanError.className = "error-message";
+        spanField.appendChild(spanError);
+      }
+      spanError.textContent = spanMessage;
+      spanError.hidden = !spanMessage;
+      spanField.classList.toggle("invalid", Boolean(spanMessage));
+
+      document.querySelectorAll(".load-card").forEach((card) => {
+        const type = card.dataset.type;
+        const load = getLoadById(type, card.dataset.id);
+        if (!load) return;
+        let message = "";
+        if (type === "point") {
+          if (load.magnitude === null) message = "Enter a finite load value.";
+          else if (load.position === null || load.position < 0 || load.position > state.span) {
+            message = `Position must be between 0 and ${state.span} ft.`;
+          }
+        } else if (load.magnitude === null || load.magnitude < 0) {
+          message = "Uniform load must be 0 or greater.";
+        } else if (load.start === null || load.start < 0 || load.start > state.span) {
+          message = `Start must be between 0 and ${state.span} ft.`;
+        } else if (load.end === null || load.end < 0 || load.end > state.span) {
+          message = `End must be between 0 and ${state.span} ft.`;
+        } else if (load.start >= load.end) {
+          message = "Start must be before end.";
+        }
+        setErrorMessage(card, message);
+      });
+    }
+
+    function renderBeamDrawing() {
+      const svg = document.querySelector("#beam-svg");
+      const uniformGroup = document.querySelector("#uniform-load-arrows");
+      const pointGroup = document.querySelector("#point-load-markers");
+      const uniformLabel = document.querySelector("#uniform-load-label");
+      const beamSpanLabel = document.querySelector("#beam-span-label");
+      const beamSummary = document.querySelector("#beam-summary");
+      const leftX = 120;
+      const beamWidth = 660;
+      const drawingSpan = Number.isFinite(state.span) && state.span > 0 ? state.span : 1;
+      const xForPosition = (position) => leftX + (position / drawingSpan) * beamWidth;
+
+      uniformGroup.replaceChildren();
+      state.uniformLoads.forEach((load) => {
+        if (load.start === null || load.end === null || load.start >= load.end) return;
+        const startX = xForPosition(clamp(load.start, 0, state.span));
+        const endX = xForPosition(clamp(load.end, 0, state.span));
+        const arrowCount = Math.max(2, Math.round((endX - startX) / 48));
+        for (let index = 0; index <= arrowCount; index += 1) {
+          const x = startX + ((endX - startX) * index) / arrowCount;
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line.setAttribute("x1", x);
+          line.setAttribute("x2", x);
+          line.setAttribute("y1", 34);
+          line.setAttribute("y2", 91);
+          uniformGroup.appendChild(line);
+        }
+      });
+      uniformLabel.textContent = state.uniformLoads.length
+        ? `Uniform load · ${state.uniformLoads.map((load) => `${load.magnitude ?? "—"} kips/ft`).join(" + ")}`
+        : "No uniform loads";
+
+      pointGroup.replaceChildren();
+      state.pointLoads.forEach((load) => {
+        if (load.position === null) return;
+        const x = xForPosition(clamp(load.position, 0, state.span));
+        const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        group.classList.add("draggable-load");
+        group.dataset.pointLoadId = load.id;
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("class", "load-arrow");
+        line.setAttribute("marker-end", "url(#arrow-red)");
+        line.setAttribute("x1", x);
+        line.setAttribute("x2", x);
+        line.setAttribute("y1", 53);
+        line.setAttribute("y2", 91);
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.setAttribute("class", "load-label");
+        label.setAttribute("x", x);
+        label.setAttribute("y", 184);
+        label.setAttribute("text-anchor", "middle");
+        label.textContent = `P = ${load.magnitude ?? "—"} k`;
+        group.append(line, label);
+        pointGroup.appendChild(group);
+      });
+
+      beamSpanLabel.textContent = Number.isFinite(state.span) ? `${state.span.toFixed(2)} ft` : "—";
+      beamSummary.textContent = `${state.supportType === "cantilever" ? "Cantilever" : "Simply supported"} beam · ${Number.isFinite(state.span) ? `${state.span} ft` : "invalid span"} · placeholder results`;
+      svg.setAttribute("aria-label", `${state.supportType === "cantilever" ? "Cantilever" : "Simply supported"} beam with applied loads`);
+    }
+
+    function updateLoadFromInput(input) {
+      const card = input.closest(".load-card");
+      const load = getLoadById(card.dataset.type, card.dataset.id);
+      const field = input.dataset.field;
+      if (!load) return;
+      load[field] = getNumberValue(input.value);
+      renderBeamDrawing();
+      validateInputs();
+    }
+
+    function removeLoad(card) {
+      const loads = card.dataset.type === "point" ? state.pointLoads : state.uniformLoads;
+      const index = loads.findIndex((load) => load.id === card.dataset.id);
+      if (index >= 0) loads.splice(index, 1);
+      renderLoadEditors();
+      renderBeamDrawing();
+    }
+
+    function addPointLoad() {
+      state.pointLoads.push({
+        id: createLoadId("point"),
+        magnitude: 10,
+        position: state.supportType === "cantilever" ? state.span : snapToQuarter(state.span / 2)
+      });
+      renderLoadEditors();
+      renderBeamDrawing();
+    }
+
+    function addUniformLoad() {
+      state.uniformLoads.push({
+        id: createLoadId("uniform"),
+        magnitude: 50,
+        start: 0,
+        end: state.span
+      });
+      renderLoadEditors();
+      renderBeamDrawing();
+    }
+
+    function snapPointInput(input) {
+      const card = input.closest(".load-card");
+      const load = getLoadById("point", card.dataset.id);
+      if (!load || load.position === null) return;
+      load.position = clamp(snapToQuarter(load.position), 0, state.span);
+      input.value = load.position;
+      renderBeamDrawing();
+      validateInputs();
+    }
+
+    function updatePointPositionFromPointer(event) {
+      if (!draggedPointLoadId) return;
+      const svg = document.querySelector("#beam-svg");
+      const load = getLoadById("point", draggedPointLoadId);
+      if (!load) return;
+      const bounds = svg.getBoundingClientRect();
+      const svgX = ((event.clientX - bounds.left) / bounds.width) * 900;
+      load.position = clamp(snapToQuarter(((svgX - 120) / 660) * state.span), 0, state.span);
+      const input = document.querySelector(`[data-type="point"][data-id="${load.id}"] input[data-field="position"]`);
+      if (input) input.value = load.position;
+      renderBeamDrawing();
+      validateInputs();
+    }
+
+    document.querySelectorAll('input[name="support"]').forEach((input) => {
+      input.addEventListener("change", (event) => {
+        state.supportType = event.target.value;
+        renderBeamDrawing();
+      });
+    });
+
+    document.querySelector("#span").addEventListener("input", (event) => {
+      state.span = getNumberValue(event.target.value);
+      document.querySelector("#span-number").value = event.target.value;
+      document.querySelectorAll('.load-card input[data-field="position"], .load-card input[data-field="start"], .load-card input[data-field="end"]')
+        .forEach((input) => input.max = state.span ?? 40);
+      renderBeamDrawing();
+      validateInputs();
+      updateMaterialQuantity();
+    });
+
+    document.querySelector("#span-number").addEventListener("input", (event) => {
+      state.span = getNumberValue(event.target.value);
+      document.querySelector("#span").value = state.span ?? 4;
+      document.querySelectorAll('.load-card input[data-field="position"], .load-card input[data-field="start"], .load-card input[data-field="end"]')
+        .forEach((input) => input.max = state.span ?? 40);
+      renderBeamDrawing();
+      validateInputs();
+      updateMaterialQuantity();
+    });
+
+    document.querySelector("#material").addEventListener("change", (event) => {
+      state.material = event.target.value;
+      renderSectionOptions();
+    });
+    document.querySelector("#section").addEventListener("change", (event) => {
+      state.section = event.target.value;
+    });
+    document.querySelector("#limit").addEventListener("change", (event) => {
+      state.deflectionLimit = event.target.value;
+    });
+    document.querySelector("#waste-factor").addEventListener("input", (event) => {
+      state.wasteFactor = Number(event.target.value);
+      document.querySelector("#waste-factor-value").value = `${state.wasteFactor}%`;
+      document.querySelector("#waste-factor-value").textContent = `${state.wasteFactor}%`;
+      updateMaterialQuantity();
+    });
+    document.querySelector("#load-list").addEventListener("input", (event) => {
+      if (event.target.matches("input[data-field]")) updateLoadFromInput(event.target);
+    });
+    document.querySelector("#load-list").addEventListener("change", (event) => {
+      if (event.target.matches('input[data-field="position"]')) snapPointInput(event.target);
+    });
+    document.querySelector("#load-list").addEventListener("click", (event) => {
+      if (event.target.matches('[data-action="remove-load"]')) removeLoad(event.target.closest(".load-card"));
+    });
+    document.querySelector("#add-point-load").addEventListener("click", addPointLoad);
+    document.querySelector("#add-uniform-load").addEventListener("click", addUniformLoad);
+
+    document.querySelector("#beam-svg").addEventListener("pointerdown", (event) => {
+      const pointGroup = event.target.closest("[data-point-load-id]");
+      if (!pointGroup) return;
+      draggedPointLoadId = pointGroup.dataset.pointLoadId;
+      document.querySelector("#beam-svg").setPointerCapture(event.pointerId);
+      updatePointPositionFromPointer(event);
+    });
+    document.querySelector("#beam-svg").addEventListener("pointermove", updatePointPositionFromPointer);
+    document.querySelector("#beam-svg").addEventListener("pointerup", () => {
+      draggedPointLoadId = null;
+    });
+    document.querySelector("#beam-svg").addEventListener("pointercancel", () => {
+      draggedPointLoadId = null;
+    });
+
+    renderSectionOptions();
+    renderLoadEditors();
+    renderBeamDrawing();
+    updateMaterialQuantity();
+    updateReinforcementWarning();
+  </script>
+</body>
+</html>
