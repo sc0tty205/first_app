@@ -47,3 +47,6 @@ add a record of this session in the prompt.md according to the rules for the ses
 
 ## 2026-11-18T14:44:23.882-07:00
 Change it into dark mode and show me how it would look.
+
+## 2026-11-18T14:48:00.650-07:00
+[[PLAN]] Add the dark mode feature to the spec.md

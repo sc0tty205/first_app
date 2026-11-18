@@ -131,6 +131,15 @@ Material and section data come from these tables:
 - Opens with an example already loaded (20 ft simply supported W12x26
   with a 1 kip/ft uniform load over the full span), so it is useful the
   moment it opens.
+- Opens in dark mode by default. Provide a header theme control that switches
+  between dark and light modes; the label should describe the mode that will
+  be opened, such as "Light mode" or "Dark mode."
+- Dark and light themes must preserve the same layout, contrast, chart
+  readability, status indicators, controls, cards, spacing, and accessible
+  labels.
+- Switching themes affects appearance only: it must not change beam inputs,
+  calculated values, or other application state. Theme persistence is not
+  required.
 - Clean and professional, like a commercial engineering web app: light
   background, white cards with soft shadows, one accent color, a modern
   system font, generous spacing. No clutter.
