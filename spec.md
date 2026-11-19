@@ -85,6 +85,9 @@ Material and section data come from these tables:
 - Bending stress fb = |M max| x 12 / Sx (ksi). Bending check passes if
   fb <= Fb.
 - Deflection check passes if |y max| <= L/240 or L/360 (L in inches).
+- Beam motion is a visual representation of the calculated deflection and
+  bending utilization. It is not a physical fracture or dynamic-analysis
+  model.
 - Lightest passing section: of the sections in the chosen material, the
   lightest steel section that passes both checks (if two weigh the same,
   the one with the larger Ix), or the first lumber size in the table
@@ -111,6 +114,17 @@ Material and section data come from these tables:
 - A line suggesting the lightest passing section, with a button to use it.
 - A reinforcement-required warning when any implemented bending or deflection
   check fails. The warning must not rely on color alone.
+- The beam overview animates smoothly when valid inputs change. The animation
+  uses a modest balanced visual scale for deflection; exact values remain in
+  the deflected-shape diagram and check cards.
+- Beam motion uses green for utilization below 70%, amber from 70% through
+  100%, and red above 100%. PASS or FAIL remains stated separately from color.
+- When bending or deflection fails, the beam may show restrained illustrative
+  sag/crack/collapse styling with a clearly visible
+  "Illustrative failure state" label. This animation does not indicate a
+  verified fracture or collapse calculation.
+- Movement must respect the user's reduced-motion preference by updating the
+  beam shape without animation.
 - Everything updates immediately whenever any input changes.
 
 ## Validation
@@ -140,6 +154,7 @@ Material and section data come from these tables:
 - Switching themes affects appearance only: it must not change beam inputs,
   calculated values, or other application state. Theme persistence is not
   required.
+- Animated beam movement must remain clear in both dark and light themes.
 - Clean and professional, like a commercial engineering web app: light
   background, white cards with soft shadows, one accent color, a modern
   system font, generous spacing. No clutter.
@@ -151,4 +166,6 @@ Material and section data come from these tables:
 ## Out of scope
 - Self-weight, shear capacity, lateral-torsional buckling, load combinations,
   and continuous beams.
+- Dynamic impact, real fracture mechanics, plastic deformation, buckling
+  simulation, and verified collapse behavior.
 - Saving designs.

@@ -321,6 +321,61 @@
     .beam-wrap { overflow-x: auto; padding: 2px 0 0; }
     .beam-svg { display: block; width: 100%; min-width: 640px; height: 210px; }
     .beam-line { stroke: #aebbd0; stroke-width: 5; stroke-linecap: round; }
+    .beam-motion-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 10px 4px 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .motion-state {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 28px;
+      padding: 5px 9px;
+      border: 1px solid #3a5d48;
+      border-radius: 999px;
+      color: var(--green);
+      background: var(--green-soft);
+      font-weight: 800;
+    }
+    .motion-state.amber {
+      border-color: #6d5a30;
+      color: var(--amber);
+      background: var(--amber-soft);
+    }
+    .motion-state.red {
+      border-color: #75434c;
+      color: var(--red);
+      background: var(--red-soft);
+    }
+    .motion-state::before {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      content: "";
+    }
+    .failure-state-label {
+      display: none;
+      color: var(--red);
+      font-weight: 900;
+      letter-spacing: .02em;
+    }
+    .failure-state-label.visible { display: inline; }
+    .animated-beam {
+      transition: stroke 280ms ease, filter 280ms ease;
+      filter: drop-shadow(0 4px 5px rgba(0, 0, 0, .16));
+    }
+    .animated-beam.normal { stroke: #67c8a1; }
+    .animated-beam.amber { stroke: #e2b45f; }
+    .animated-beam.red { stroke: #f08a95; }
+    .collapse-mark { display: none; }
+    .collapse-mark.visible { display: block; }
+    .collapse-mark line { stroke: var(--red); stroke-width: 3; }
     .support { fill: #44566e; stroke: #9aabc1; stroke-width: 2; }
     .support-base { stroke: #9aabc1; stroke-width: 2; }
     .load-arrow { stroke: var(--red); stroke-width: 2.5; }
@@ -622,7 +677,11 @@
                   <path class="reaction-head" d="M0,0 L8,4 L0,8 Z"></path>
                 </marker>
               </defs>
-              <line class="beam-line" x1="120" y1="105" x2="780" y2="105"></line>
+              <path id="animated-beam-line" class="beam-line animated-beam normal" d="M120 105 Q450 105 780 105"></path>
+              <g id="collapse-mark" class="collapse-mark" aria-label="Illustrative collapse highlight">
+                <line x1="444" y1="96" x2="456" y2="114"></line>
+                <line x1="456" y1="96" x2="444" y2="114"></line>
+              </g>
               <path class="support" d="M120 110 L97 148 L143 148 Z"></path>
               <line class="support-base" x1="88" y1="153" x2="152" y2="153"></line>
               <path class="support" d="M780 110 L757 148 L803 148 Z"></path>
@@ -641,6 +700,11 @@
               <line class="dimension" x1="780" y1="164" x2="780" y2="174"></line>
               <text id="beam-span-label" x="450" y="165" text-anchor="middle">20.00 ft</text>
             </svg>
+          </div>
+          <div class="beam-motion-status" aria-live="polite">
+            <span id="motion-state" class="motion-state">Normal elastic movement</span>
+            <span id="failure-state-label" class="failure-state-label">Illustrative failure state</span>
+            <span id="motion-utilization">Visual utilization: 60%</span>
           </div>
         </section>
 
@@ -764,6 +828,20 @@
       "Douglas Fir-Larch No. 2": ["2x8", "2x10", "2x12"]
     };
 
+    const SECTION_MOTION_DATA = {
+      "W8x10": { Ix: 30.8, strength: 1 },
+      "W10x12": { Ix: 53.8, strength: 1 },
+      "W12x26": { Ix: 204, strength: 1 },
+      "W14x22": { Ix: 199, strength: 1 },
+      "W16x26": { Ix: 301, strength: 1 },
+      "W18x35": { Ix: 510, strength: 1 },
+      "W21x44": { Ix: 843, strength: 1 },
+      "W24x55": { Ix: 1350, strength: 1 },
+      "2x8": { Ix: 47.63, strength: .03 },
+      "2x10": { Ix: 98.93, strength: .03 },
+      "2x12": { Ix: 177.98, strength: .03 }
+    };
+
     const state = {
       supportType: "simply-supported",
       span: 20,
@@ -795,6 +873,125 @@
 
     function snapToQuarter(value) {
       return Math.round(value * 4) / 4;
+    }
+
+    function calculateBeamMotionState() {
+      const span = Number.isFinite(state.span) && state.span > 0 ? state.span : 20;
+      const section = SECTION_MOTION_DATA[state.section] || SECTION_MOTION_DATA.W12x26;
+      const pointLoadTotal = state.pointLoads.reduce((sum, load) => (
+        load.magnitude === null ? sum : sum + Math.abs(load.magnitude)
+      ), 0);
+      const uniformLoadTotal = state.uniformLoads.reduce((sum, load) => {
+        if (load.magnitude === null || load.start === null || load.end === null) return sum;
+        return sum + Math.max(0, load.magnitude) * Math.max(0, load.end - load.start);
+      }, 0);
+      const totalLoad = pointLoadTotal + uniformLoadTotal;
+      const loadScale = totalLoad / 20;
+      const stiffnessScale = section.Ix / 204;
+      const spanScale = Math.pow(span / 20, state.supportType === "cantilever" ? 3 : 2);
+      const cantileverScale = state.supportType === "cantilever" ? 2.2 : 1;
+      const bendingUtilization = Math.max(0, 0.599 * loadScale * spanScale * cantileverScale / stiffnessScale);
+      const deflectionUtilization = Math.max(0, 0.913 * loadScale * Math.pow(span / 20, state.supportType === "cantilever" ? 4 : 3) * cantileverScale / stiffnessScale);
+      const utilization = Math.max(bendingUtilization, deflectionUtilization);
+      const visualPeak = clamp((Math.sqrt(Math.max(utilization, 0)) * 14) + (utilization > 1 ? (utilization - 1) * 22 : 0), 0, 55);
+
+      return {
+        utilization,
+        bendingUtilization,
+        deflectionUtilization,
+        visualPeak,
+        failed: bendingUtilization > 1 || deflectionUtilization > 1
+      };
+    }
+
+    let previousBeamMotion = { controlY: 105, endY: 105 };
+
+    function animateBeamMotion(targetControlY, targetEndY) {
+      const beam = document.querySelector("#animated-beam-line");
+      if (!beam) return;
+
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        const targetPath = state.supportType === "cantilever"
+          ? `M120 105 Q450 ${targetControlY.toFixed(2)} 780 ${targetEndY.toFixed(2)}`
+          : `M120 105 Q450 ${targetControlY.toFixed(2)} 780 105`;
+        beam.setAttribute("d", targetPath);
+        previousBeamMotion = { controlY: targetControlY, endY: targetEndY };
+        return;
+      }
+
+      const startControlY = previousBeamMotion.controlY;
+      const startEndY = previousBeamMotion.endY;
+      const startedAt = performance.now();
+      const duration = 360;
+
+      function step(now) {
+        const progress = Math.min(1, (now - startedAt) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const controlY = startControlY + (targetControlY - startControlY) * eased;
+        const endY = startEndY + (targetEndY - startEndY) * eased;
+        const path = state.supportType === "cantilever"
+          ? `M120 105 Q450 ${controlY.toFixed(2)} 780 ${endY.toFixed(2)}`
+          : `M120 105 Q450 ${controlY.toFixed(2)} 780 105`;
+        beam.setAttribute("d", path);
+        if (progress < 1) requestAnimationFrame(step);
+        else {
+          previousBeamMotion = { controlY: targetControlY, endY: targetEndY };
+        }
+      }
+      requestAnimationFrame(step);
+    }
+
+    function updateBeamMotion() {
+      const motion = calculateBeamMotionState();
+      const beam = document.querySelector("#animated-beam-line");
+      const stateLabel = document.querySelector("#motion-state");
+      const utilizationLabel = document.querySelector("#motion-utilization");
+      const failureLabel = document.querySelector("#failure-state-label");
+      const collapseMark = document.querySelector("#collapse-mark");
+      const utilizationPercent = Math.min(999, Math.round(motion.utilization * 100));
+
+      beam.classList.remove("normal", "amber", "red");
+      stateLabel.classList.remove("amber", "red");
+      failureLabel.classList.remove("visible");
+      collapseMark.classList.remove("visible");
+
+      let level = "normal";
+      let stateText = "Normal elastic movement";
+      if (motion.utilization >= 0.7 && motion.utilization <= 1) {
+        level = "amber";
+        stateText = "High elastic utilization";
+      }
+      if (motion.failed) {
+        level = "red";
+        stateText = "Illustrative failure motion";
+      }
+
+      beam.classList.add(level);
+      if (level !== "normal") stateLabel.classList.add(level);
+      stateLabel.textContent = stateText;
+      utilizationLabel.textContent = `Visual utilization: ${utilizationPercent}%`;
+
+      const failureExtra = motion.failed ? 24 : 0;
+      const visualPeak = motion.visualPeak + failureExtra;
+      const targetControlY = state.supportType === "cantilever"
+        ? 105 + visualPeak * 0.55
+        : 105 + visualPeak;
+      const targetEndY = state.supportType === "cantilever"
+        ? 105 + visualPeak
+        : 105;
+
+      animateBeamMotion(targetControlY, targetEndY);
+
+      if (motion.failed) {
+        failureLabel.classList.add("visible");
+        collapseMark.classList.add("visible");
+        collapseMark.setAttribute(
+          "transform",
+          state.supportType === "cantilever"
+            ? `translate(0 ${visualPeak * 0.55})`
+            : `translate(0 ${visualPeak})`
+        );
+      }
     }
 
     function calculateAdjustedMaterialQuantity(span, wasteFactor) {
@@ -1018,6 +1215,7 @@
       beamSpanLabel.textContent = Number.isFinite(state.span) ? `${state.span.toFixed(2)} ft` : "—";
       beamSummary.textContent = `${state.supportType === "cantilever" ? "Cantilever" : "Simply supported"} beam · ${Number.isFinite(state.span) ? `${state.span} ft` : "invalid span"} · placeholder results`;
       svg.setAttribute("aria-label", `${state.supportType === "cantilever" ? "Cantilever" : "Simply supported"} beam with applied loads`);
+      updateBeamMotion();
     }
 
     function updateLoadFromInput(input) {
@@ -1113,9 +1311,11 @@
     document.querySelector("#material").addEventListener("change", (event) => {
       state.material = event.target.value;
       renderSectionOptions();
+      renderBeamDrawing();
     });
     document.querySelector("#section").addEventListener("change", (event) => {
       state.section = event.target.value;
+      renderBeamDrawing();
     });
     document.querySelector("#limit").addEventListener("change", (event) => {
       state.deflectionLimit = event.target.value;

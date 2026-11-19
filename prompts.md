@@ -53,3 +53,6 @@ Change it into dark mode and show me how it would look.
 
 ## 2026-11-18T18:42:30.358-07:00
 [[PLAN]] Now lets add another feature. What I would like to see is movement in the beam (i.e. pressure, bending, breaking, etc.) depending on how much force is being applied to its strength and material. How will it look and what will change? Dont build anything yet.
+
+## 2026-11-18T18:50:21.608-07:00
+Now build only this feature
